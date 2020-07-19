@@ -148,18 +148,13 @@ summary(IAI_learner)  ##investigate the variables
 
 set.seed(108)
 missF <- missForest(IAI_learner)
-completedData <- missF$ximp
-
-saveRDS(completedData,"C:/Users/Shakthi/Desktop/Share/IAI/imputed.RDS")
-completedData <- readRDS("C:/Users/Shakthi/Desktop/Share/IAI/imputed.RDS")
-
-
-completedData <- completedData[complete.cases(completedData), ]
+imputedData <- missF$ximp
+imputedData <- imputedData[complete.cases(imputedData), ]
 
 
 ## take a stratified outcome to ensure equal proportions of outcome in each group.
 set.seed(108)
-out <- stratified(completedData, c("outcome"), 0.75,bothSets = T,keep.rownames=F)
+out <- stratified(imputedData, c("outcome"), 0.75,bothSets = T,keep.rownames=F)
 Model_Train <- as.data.frame(out$SAMP1)
 Model_Test <- as.data.frame(out$SAMP2)
 
@@ -194,12 +189,12 @@ base_outcomes <- as.numeric(Model_Train$outcome)-1
 predictors <- Model_Train[,1:19]
 
 et.seed(108)
-sl_screener6_base <- SuperLearner(Y = base_outcomes, X = predictors , family = binomial(), verbose=TRUE,method="method.NNloglik",
+superlearner <- SuperLearner(Y = base_outcomes, X = predictors , family = binomial(), verbose=TRUE,method="method.NNloglik",
                                    SL.library = c("SL.xgboost","SL.ranger","SL.stepAIC","SL.bayesglm","SL.ksvm","SL.rpart","SL.earth","SL.glmnet","SL.glm")) 
 
 
-Model_Test$predictions_base <- predict.SuperLearner(sl_screener6_base, newdata=subset(Model_Test,select=c(1:19)))$pred
-Model_Train$predictions_base <- predict.SuperLearner(sl_screener6_base, newdata=subset(Model_Train,select=c(1:19)))$pred
+Model_Test$predictions_base <- predict.SuperLearner(superlearner, newdata=subset(Model_Test,select=c(1:19)))$pred
+Model_Train$predictions_base <- predict.SuperLearner(superlearner, newdata=subset(Model_Train,select=c(1:19)))$pred
 
 Cutpoints <- cutpointr(Model_Test, predictions_base, outcome, 
                        direction = ">=", pos_class = 1,
@@ -219,8 +214,8 @@ paste("NPV",round(Z$elements$npv*100,1),"(",round(Z$elements$npv.low*100,1),roun
 roc(Model_Test$outcome, Model_Test$predictions_base, percent=TRUE, ci=TRUE)
 
 #all predictions
-allmodels <- data.frame(predict.SuperLearner(sl_screener6_base, newdata=subset(Model_Test,select=c(1:19)))$library.predict)
-
+allmodels <- data.frame(predict.SuperLearner(superlearner, newdata=subset(Model_Test,select=c(1:19)))$library.predict)
+allmodels_train <- data.frame(predict.SuperLearner(superlearner, newdata=subset(Model_Train,select=c(1:19)))$library.predict)
 
 
 
@@ -258,7 +253,6 @@ earth<- "#6e7ecc"
 glmnet<- "#737e39"
 glm<- "#c16b94"
 plot( perf, colorize = F,xaxs="i",yaxs="i",lwd=1.5,col=discrete,xlab="1 - Specificity", ylab="Sensitivity")
-
 plot( perf2, colorize = F,xaxs="i",yaxs="i",lwd=1.5,col=xgboost,add=T,lty=3)
 plot( perf3, colorize = F,xaxs="i",yaxs="i",lwd=1.5,col=ranger,add=T,lty=4)
 plot( perf4, colorize = F,xaxs="i",yaxs="i",lwd=1.5,col=stepAIC,add=T,lty=5)
@@ -270,3 +264,50 @@ plot( perf9, colorize = F,xaxs="i",yaxs="i",lwd=1.5,col=glmnet,add=T,lty=10)
 plot( perf10, colorize = F,xaxs="i",yaxs="i",lwd=1.5,col=glm,add=T,lty=11)
 abline(coef = c(0,1),col="#696969",lty=2)
 
+
+
+
+par(pty="s",mgp=c(2,1,0))
+pred <- prediction( Model_Train$predictions_base, Model_Train$outcome )
+perf <- performance( pred, "tpr", "fpr" )
+pred2 <- prediction( allmodels_train$SL.xgboost_All, Model_Train$outcome )
+perf2 <- performance( pred2, "tpr", "fpr" )
+pred3 <- prediction( allmodels_train$SL.ranger_All, Model_Train$outcome )
+perf3 <- performance( pred3, "tpr", "fpr" )
+pred4 <- prediction( allmodels_train$SL.stepAIC_All, Model_Train$outcome )
+perf4 <- performance( pred4, "tpr", "fpr" )
+pred5 <- prediction( allmodels_train$SL.bayesglm_All, Model_Train$outcome )
+perf5 <- performance( pred5, "tpr", "fpr" )
+pred6 <- prediction( allmodels_train$SL.ksvm_All, Model_Train$outcome )
+perf6 <- performance( pred6, "tpr", "fpr" )
+pred7 <- prediction( allmodels_train$SL.rpart_All, Model_Train$outcome )
+perf7 <- performance( pred7, "tpr", "fpr" )
+pred8 <- prediction( allmodels_train$SL.earth_All, Model_Train$outcome )
+perf8 <- performance( pred8, "tpr", "fpr" )
+pred9 <- prediction( allmodels_train$SL.glmnet_All, Model_Train$outcome )
+perf9 <- performance( pred9, "tpr", "fpr" )
+pred10 <- prediction( allmodels_train$SL.glm_All, Model_Train$outcome )
+perf10 <- performance( pred10, "tpr", "fpr" )
+
+discrete<- "black"
+xgboost<- "#cb9b44"
+ranger<- "#b459c1" 
+stepAIC<- "#74b54a"
+bayesglm<- "#d03f68"
+ksvm<- "#4bb194"
+rpart<- "#c8603f"
+earth<- "#6e7ecc"
+glmnet<- "#737e39"
+glm<- "#c16b94"
+
+plot( perf, colorize = F,xaxs="i",yaxs="i",lwd=1.5,col=discrete,xlab="1 - Specificity", ylab="Sensitivity")
+plot( perf2, colorize = F,xaxs="i",yaxs="i",lwd=1.5,col=xgboost,add=T,lty=3)
+plot( perf3, colorize = F,xaxs="i",yaxs="i",lwd=1.5,col=ranger,add=T,lty=4)
+plot( perf4, colorize = F,xaxs="i",yaxs="i",lwd=1.5,col=stepAIC,add=T,lty=5)
+plot( perf5, colorize = F,xaxs="i",yaxs="i",lwd=1.5,col=bayesglm,add=T,lty=6)
+plot( perf6, colorize = F,xaxs="i",yaxs="i",lwd=1.5,col=ksvm,add=T,lty=7)
+plot( perf7, colorize = F,xaxs="i",yaxs="i",lwd=1.5,col=rpart,add=T,lty=8)
+plot( perf8, colorize = F,xaxs="i",yaxs="i",lwd=1.5,col=earth,add=T,lty=9)
+plot( perf9, colorize = F,xaxs="i",yaxs="i",lwd=1.5,col=glmnet,add=T,lty=10)
+plot( perf10, colorize = F,xaxs="i",yaxs="i",lwd=1.5,col=glm,add=T,lty=11)
+abline(coef = c(0,1),col="#696969",lty=2)
