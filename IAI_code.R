@@ -58,7 +58,6 @@ IAI <- merge(x = demographics, y = form1, by = c("SubjectID"), all.x = TRUE)
 IAI$GCSScore <- ifelse(IAI$GCSScore<15,1,0)
 IAI$sex <- ifelse(IAI$SEX=="F",2,1)
 IAI$AbdDistention[IAI$AbdDistention==4] <- NA
-IAI$AbdDistention[IAI$BowelSounds==4] <- NA
 IAI$PeritonIrrit[IAI$PeritonIrrit==4] <- NA
 IAI$ThoracicTrauma[IAI$ThoracicTrauma==3] <- NA
 IAI$ShortBreath[IAI$ShortBreath==4] <- NA
@@ -70,6 +69,8 @@ IAI$PelvisUnstable[IAI$PelvisUnstable==4] <- NA
 IAI$RectalBlood[IAI$RectalBlood==4] <- NA
 IAI$AbdomenPain[IAI$AbdomenPain==4] <- NA
 IAI$AbdomenTender[IAI$AbdomenTender==4] <- NA
+IAI$SeatBeltSign[IAI$SeatBeltSign==3] <- NA
+IAI$BowelSounds[IAI$BowelSounds==4 ] <- NA
 
 
 IAI$ageinyrs <-as.numeric(IAI$ageinyrs)
